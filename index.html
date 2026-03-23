@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>fMRI Reversal Learning - Immersive Version</title>
+    <style>
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background: #d1d1d1; color: #000; font-family: sans-serif; overflow: hidden; 
+            display: flex; align-items: center; justify-content: center;
+        }
+        #task-root { width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        #setup-screen { position: absolute; z-index: 100; background: #444; padding: 40px; border-radius: 15px; text-align: center; cursor: default; width: 450px; box-shadow: 0 0 40px rgba(0,0,0,0.6); color: #fff; }
+        #content { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; text-align: center; pointer-events: none; padding: 0; box-sizing: border-box; }
+        .stim-container { display: flex; gap: 10vw; }
+        .stim { 
+            width: 25vh; height: 25vh; border: 10px solid transparent; background: #fff; border-radius: 20px; 
+            display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.1); 
+        }
+        .stim img { max-width: 100%; max-height: 100%; }
+        .stim.selected { border-color: #00ff00; border-width: 12px; }
+        .fixation { font-size: 15vh; font-weight: bold; color: #000; line-height: 1; }
+        .instruction-img { max-width: 80%; max-height: 70%; margin: 20px 0; clip-path: inset(2px); outline: none; }
+        .stim-label { font-size: 3vh; font-weight: bold; color: #666; margin-top: 1vh; text-align: center; }
+        .score-tally { position: absolute; bottom: 5vh; font-size: 4vh; font-weight: bold; color: #000; background: rgba(255,255,255,0.7); padding: 10px 20px; border-radius: 10px; }
+        .slider-track { width: 60vw; height: 2vh; background: #bbb; position: relative; border-radius: 1vh; margin: 5vh 0; border: 3px solid #888; }
+        .slider-handle { width: 5vh; height: 5vh; background: #333; border-radius: 50%; position: absolute; top: -1.8vh; left: 50%; margin-left: -2.5vh; border: 4px solid #fff; transition: left 0.1s ease; }
+        .slider-labels { display: flex; justify-content: space-between; width: 60vw; font-size: 4vh; font-weight: bold; color: #000; }
+        button { padding: 15px 30px; font-size: 20px; cursor: pointer; background: #28a745; color: white; border: none; border-radius: 8px; margin: 15px; }
+        input[type="text"] { padding: 12px; font-size: 18px; margin-bottom: 20px; width: 80%; border-radius: 8px; border: none; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div id="setup-screen">
+    <h2 style="margin-top:0">fMRI Task Setup</h2>
+    <p>Participant ID</p>
+    <input type="text" id="part-id" placeholder="e.g. SUB_001">
+    <p>Scanner Trigger Key</p>
+    <input type="text" id="trigger-key" value="5" style="width: 60px;">
+    <br><br>
+    <button onclick="requestTaskStart()">Enter Fullscreen & Start</button>
+</div>
+
+<div id="task-root">
+    <div id="content"></div>
+</div>
+
+<script>
+    // DATA FROM SPREADHSEET
+    const spreadsheetData = [{"display":"BeginBlock"},{"display":"BeginBlockHappiness"},{"display":"ScannerWait"},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"HappinessRating","Image_Left":null,"Image_Right":null,"Image_Left_Bold":null,"Image_Right_Bold":null,"duration_outcome":null,"duration_iti":null,"stim1":null,"stim2":null,"reward_amt":null,"loss_amt":null,"stim1_prob":null,"stim2_prob":null,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"HappinessRating","Image_Left":null,"Image_Right":null,"Image_Left_Bold":null,"Image_Right_Bold":null,"duration_outcome":null,"duration_iti":null,"stim1":null,"stim2":null,"reward_amt":null,"loss_amt":null,"stim1_prob":null,"stim2_prob":null,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"HappinessRating","Image_Left":null,"Image_Right":null,"Image_Left_Bold":null,"Image_Right_Bold":null,"duration_outcome":null,"duration_iti":null,"stim1":null,"stim2":null,"reward_amt":null,"loss_amt":null,"stim1_prob":null,"stim2_prob":null,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"HappinessRating","Image_Left":null,"Image_Right":null,"Image_Left_Bold":null,"Image_Right_Bold":null,"duration_outcome":null,"duration_iti":null,"stim1":null,"stim2":null,"reward_amt":null,"loss_amt":null,"stim1_prob":null,"stim2_prob":null,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"HappinessRating","Image_Left":null,"Image_Right":null,"Image_Left_Bold":null,"Image_Right_Bold":null,"duration_outcome":null,"duration_iti":null,"stim1":null,"stim2":null,"reward_amt":null,"loss_amt":null,"stim1_prob":null,"stim2_prob":null,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"HappinessRating","Image_Left":null,"Image_Right":null,"Image_Left_Bold":null,"Image_Right_Bold":null,"duration_outcome":null,"duration_iti":null,"stim1":null,"stim2":null,"reward_amt":null,"loss_amt":null,"stim1_prob":null,"stim2_prob":null,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"HappinessRating","Image_Left":null,"Image_Right":null,"Image_Left_Bold":null,"Image_Right_Bold":null,"duration_outcome":null,"duration_iti":null,"stim1":null,"stim2":null,"reward_amt":null,"loss_amt":null,"stim1_prob":null,"stim2_prob":null,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.2,"stim2_prob":0.8,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"HappinessRating","Image_Left":null,"Image_Right":null,"Image_Left_Bold":null,"Image_Right_Bold":null,"duration_outcome":null,"duration_iti":null,"stim1":null,"stim2":null,"reward_amt":null,"loss_amt":null,"stim1_prob":null,"stim2_prob":null,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"HappinessRating","Image_Left":null,"Image_Right":null,"Image_Left_Bold":null,"Image_Right_Bold":null,"duration_outcome":null,"duration_iti":null,"stim1":null,"stim2":null,"reward_amt":null,"loss_amt":null,"stim1_prob":null,"stim2_prob":null,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"HappinessRating","Image_Left":null,"Image_Right":null,"Image_Left_Bold":null,"Image_Right_Bold":null,"duration_outcome":null,"duration_iti":null,"stim1":null,"stim2":null,"reward_amt":null,"loss_amt":null,"stim1_prob":null,"stim2_prob":null,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim1","Image_Right":"stim2","Image_Left_Bold":"stim1","Image_Right_Bold":"stim2","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"HappinessRating","Image_Left":null,"Image_Right":null,"Image_Left_Bold":null,"Image_Right_Bold":null,"duration_outcome":null,"duration_iti":null,"stim1":null,"stim2":null,"reward_amt":null,"loss_amt":null,"stim1_prob":null,"stim2_prob":null,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"Trials","Image_Left":"stim2","Image_Right":"stim1","Image_Left_Bold":"stim2","Image_Right_Bold":"stim1","duration_outcome":1500.0,"duration_iti":1000.0,"stim1":"stim1","stim2":"stim2","reward_amt":30.0,"loss_amt":10.0,"stim1_prob":0.8,"stim2_prob":0.2,"ANSWER":null},{"randomise_blocks":1.0,"randomise_trials":null,"display":"HappinessRating","Image_Left":null,"Image_Right":null,"Image_Left_Bold":null,"Image_Right_Bold":null,"duration_outcome":null,"duration_iti":null,"stim1":null,"stim2":null,"reward_amt":null,"loss_amt":null,"stim1_prob":null,"stim2_prob":null,"ANSWER":null},{"display":"End"}];
+
+    // GLOBAL INFO
+    let dataLog = [];
+    let scannerStartTime = 0;
+    let totalScore = 0;
+    let currentRowIndex = 0;
+    let participantId = "N/A";
+    let triggerKey = "5";
+    let inputLockout = false;
+    
+    const FIXED_STIM_WINDOW = 2500; 
+    const FEEDBACK_DUR = 2000;
+    const HAPPINESS_DUR = 4000;
+    const JITTER_MIN = 2000;
+    const JITTER_MAX = 5000;
+    const SLIDE_LOCKOUT = 1000; // 1 second delay between slides
+
+    const STIM_LIST = ['01', '02', '03', '04', '05', '06', '07', '08'];
+    let stimulusPairs = {}; 
+
+    const $ = (id) => document.getElementById(id);
+    const setHtml = (html) => { $('content').innerHTML = html; };
+
+    function requestTaskStart() {
+        participantId = $('part-id').value || "ANON";
+        triggerKey = $('trigger-key').value || "5";
+
+        const docEl = document.documentElement;
+        if (docEl.requestFullscreen) docEl.requestFullscreen();
+        else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
+        else if (docEl.msRequestFullscreen) docEl.msRequestFullscreen();
+
+        $('setup-screen').style.display = 'none';
+        document.body.style.cursor = 'none';
+        
+        let pool = [...STIM_LIST].sort(() => Math.random() - 0.5);
+        stimulusPairs["1.0"] = [pool[0], pool[1]];
+        stimulusPairs["2.0"] = [pool[2], pool[3]];
+        stimulusPairs["3.0"] = [pool[4], pool[5]];
+        stimulusPairs["4.0"] = [pool[6], pool[7]];
+        
+        startExperiment();
+    }
+
+    function logEvent(name, resp, meta = {}) {
+        const now = performance.now();
+        const t0_rel = scannerStartTime > 0 ? (now - scannerStartTime) : -1;
+        dataLog.push({
+            participant: participantId,
+            trial_index: currentRowIndex,
+            abs_time_ms: now.toFixed(3),
+            scanner_rel_ms: t0_rel.toFixed(3),
+            event_name: name,
+            response: resp || "none",
+            ...meta
+        });
+    }
+
+    function startExperiment() {
+        // Automatically rotate between blocks 1.0, 2.0, 3.0, 4.0 every 18 trials
+        // to ensure all 8 images are seen during the 72-trial run.
+        let trialCount = 0;
+        spreadsheetData.forEach(row => {
+            if (row.display === 'Trials') {
+                const blockNum = Math.floor(trialCount / 18) + 1;
+                row.randomise_blocks = blockNum.toFixed(1);
+                trialCount++;
+            }
+        });
+
+        currentRowIndex = 0;
+        runStep();
+    }
+
+    function nextStep() {
+        currentRowIndex++;
+        runStep();
+    }
+
+    function runStep() {
+        const row = spreadsheetData[currentRowIndex];
+        if (!row || row.display === 'End') return finishTask();
+
+        setHtml("");
+        document.onkeydown = null;
+        inputLockout = true;
+        setTimeout(() => { inputLockout = false; }, SLIDE_LOCKOUT);
+
+        if (row.display === 'BeginBlock') {
+            setHtml(`<img class="instruction-img" src="images/instruction_task.png"><p style="font-weight:bold;">Press any key to start</p>`);
+            document.onkeydown = (e) => { if(!inputLockout) { e.preventDefault(); nextStep(); } };
+        } 
+        
+        else if (row.display === 'BeginBlockHappiness') {
+            setHtml(`<img class="instruction-img" src="images/happiness-scale-instructions.png"><p style="font-weight:bold;">Press any key to continue</p>`);
+            document.onkeydown = (e) => { if(!inputLockout) { e.preventDefault(); nextStep(); } };
+        }
+
+        else if (row.display === 'ScannerWait') {
+            setHtml(`<h1 class="fixation">+</h1><p style="font-weight:bold; font-size: 6vh; ">WAITING FOR SCANNER</p>`);
+            document.onkeydown = (e) => {
+                if (e.key === triggerKey) {
+                    scannerStartTime = performance.now();
+                    logEvent("SCANNER_START", triggerKey);
+                    nextStep();
+                }
+            };
+        }
+
+        else if (row.display === 'Trials') {
+            const blockId = String(row.randomise_blocks);
+            const pair = stimulusPairs[blockId] || stimulusPairs["1.0"];
+            const imgL = row.Image_Left === 'stim1' ? pair[0] : pair[1];
+            const imgR = row.Image_Right === 'stim1' ? pair[0] : pair[1];
+            
+            setHtml(`<div class="stim-container">
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <div class="stim" id="stim-l"><img src="images/${imgL}_stim.png"></div>
+                    <div class="stim-label">1</div>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <div class="stim" id="stim-r"><img src="images/${imgR}_stim.png"></div>
+                    <div class="stim-label">2</div>
+                </div>
+            </div><div class="score-tally">Total Score: ${totalScore}</div>`);
+            
+            logEvent("TRIAL_ONSET", "Stimuli_Displayed", { stim_left: imgL, stim_right: imgR });
+            let onsetTime = performance.now();
+            let responded = false;
+
+            document.onkeydown = (e) => {
+                if (!responded && (e.key === '1' || e.key === '2')) {
+                    responded = true;
+                    const isLeft = e.key === '1';
+                    const chosenImg = isLeft ? imgL : imgR;
+                    document.getElementById(isLeft ? 'stim-l' : 'stim-r').classList.add('selected');
+                    const chosenIsStim1 = (isLeft && row.Image_Left === 'stim1') || (!isLeft && row.Image_Right === 'stim1');
+                    const prob = chosenIsStim1 ? parseFloat(row.stim1_prob) : parseFloat(row.stim2_prob);
+                    const won = Math.random() < prob;
+                    
+                    const outcomeValue = won ? parseInt(row.reward_amt) : -parseInt(row.loss_amt);
+                    totalScore += outcomeValue;
+
+                    logEvent("RESPONSE", isLeft ? "Left" : "Right", { won: won, rt_ms: (performance.now() - onsetTime).toFixed(2), score_change: outcomeValue, total_score: totalScore });
+                    setTimeout(() => showFeedback(won, outcomeValue, chosenImg), Math.max(0, FIXED_STIM_WINDOW - (performance.now() - onsetTime)));
+                }
+            };
+
+            setTimeout(() => {
+                if (!responded) {
+                    logEvent("RESPONSE_TIMEOUT", "No_Response");
+                    showFeedback(null, 0, null);
+                }
+            }, FIXED_STIM_WINDOW);
+        }
+
+        else if (row.display === 'HappinessRating') {
+            setHtml(`<div class="slider-track"><div class="slider-handle" id="handle"></div></div><div class="slider-labels"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>`);
+            let rating = 3;
+            logEvent("HAPPINESS_ONSET", "Start");
+            document.onkeydown = (e) => {
+                if (e.key === '1' && rating > 1) { rating--; updateSlider(); }
+                if (e.key === '2' && rating < 5) { rating++; updateSlider(); }
+                function updateSlider() {
+                    document.getElementById('handle').style.left = ((rating - 1) * 25) + "%";
+                    logEvent("SLIDER_MOVE", rating);
+                }
+            };
+            setTimeout(() => {
+                logEvent("HAPPINESS_OFFSET", rating);
+                nextStep();
+            }, HAPPINESS_DUR);
+        }
+    }
+
+    function showFeedback(won, scoreChange, chosenImg) {
+        document.onkeydown = null;
+        if (won === null) {
+            setHtml(`<h1 style="font-size:8vh;">TOO SLOW</h1><div class="score-tally">Total Score: ${totalScore}</div>`);
+        } else {
+            const feedbackImg = `images/${chosenImg}_stim_bold.png`;
+            const winLossImg = won ? 'images/win.png' : 'images/loss.png';
+            const audio = new Audio('images/' + (won ? 'winsound.mp3' : 'losesound.mp3'));
+            
+            setHtml(`
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <div style="position:relative; width:40vh; height:40vh; display:flex; align-items:center; justify-content:center;">
+                        <img src="${feedbackImg}" style="max-height:100%; max-width:100%; z-index:1;">
+                        <img src="${winLossImg}" style="position:absolute; bottom:-5vh; right:-5vh; width:15vh; z-index:2;">
+                    </div>
+                    <h1 style="color:${won?'#28a745':'#dc3545'}; font-size:8vh; margin-top:2vh;">${won?'WIN':'LOSS'}</h1>
+                </div>
+                <div class="score-tally">Total Score: ${totalScore}</div>
+            `);
+            audio.play().catch(() => {});
+        }
+        logEvent("FEEDBACK_ONSET", won === null ? "Timeout" : (won?"Win":"Loss"), { score_change: scoreChange, total_score: totalScore });
+        setTimeout(showITI, FEEDBACK_DUR);
+    }
+
+    function showITI() {
+        setHtml(`<h1 class="fixation">+</h1><div class="score-tally">Total Score: ${totalScore}</div>`);
+        const jitter = Math.floor(Math.random() * (JITTER_MAX - JITTER_MIN)) + JITTER_MIN;
+        logEvent("ITI_ONSET", jitter, { total_score: totalScore });
+        setTimeout(nextStep, jitter);
+    }
+
+    function finishTask() {
+        document.body.style.cursor = 'default';
+        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+        setHtml(`<div style="background:white; padding:40px; border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,0.3); color:black; max-width: 80%;">
+            <h1>Task Complete</h1>
+            <h2>Final Score: ${totalScore}</h2>
+            <button onclick="downloadResults()">Download CSV Results</button>
+            <button onclick="viewRawData()" style="background: #6c757d;">View Data as Text</button>
+            <div id="raw-data-area" style="display:none; margin-top:20px;">
+                <p>Copy and paste the data below into a text file if the download failed:</p>
+                <textarea id="raw-csv" style="width:100%; height:200px; font-family:monospace; font-size:12px;"></textarea>
+            </div>
+        </div>`);
+        console.log("Task finished. Data Log:", dataLog);
+    }
+
+    function viewRawData() {
+        const csv = generateCSV();
+        $('raw-csv').value = csv;
+        $('raw-data-area').style.display = 'block';
+    }
+
+    function generateCSV() {
+        if (dataLog.length === 0) return "";
+        // Capture all unique keys across all log entries
+        const allKeys = [];
+        dataLog.forEach(d => {
+            Object.keys(d).forEach(k => {
+                if (!allKeys.includes(k)) allKeys.push(k);
+            });
+        });
+
+        const headers = allKeys.join(",");
+        const rows = dataLog.map(d => allKeys.map(k => {
+            let v = d[k] === undefined ? "" : d[k];
+            let s = String(v);
+            return s.includes(',') ? `"${s}"` : s;
+        }).join(",")).join("\n");
+        return headers + "\n" + rows;
+    }
+
+    function downloadResults() {
+        try {
+            const csv = generateCSV();
+            if (!csv) return alert("No data recorded!");
+            
+            console.log("Generated CSV:\n", csv);
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            
+            // Sanitize filename
+            const safeId = participantId.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            a.href = url;
+            a.download = `Data_${safeId}_${new Date().toISOString().slice(0,10)}.csv`;
+            
+            document.body.appendChild(a);
+            a.click();
+            
+            // Small delay 
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+        } catch (err) {
+            console.error("Download failed:", err);
+            alert("Download failed! Use 'View Data as Text' and copy the data manually. Error: " + err.message);
+        }
+    }
+</script>
+</body>
+</html>
