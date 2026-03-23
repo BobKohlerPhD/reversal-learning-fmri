@@ -19,8 +19,8 @@ var choiceTimeout = null;
 var EMBEDDED_DATA = 'total_score';
 var EMBEDDED_SCORE_TASK = EMBEDDED_DATA + '_task';
 
-// --- STIMULUS PRE-PROCESSING ---
-var list_stim = ['01', '02', '03', '04', '05', '06', '07', '08'];
+// --- STIMULUS PRE-PROCESSING (Geometric Theme: IDs 09-16) ---
+var list_stim = ['09', '10', '11', '12', '13', '14', '15', '16'];
 
 gorillaTaskBuilder.preProcessSpreadsheet((spreadsheet) => {
     list_stim = list_stim.sort(() => Math.random() - 0.5);
@@ -38,12 +38,12 @@ gorillaTaskBuilder.preProcessSpreadsheet((spreadsheet) => {
                 if (val === 'stim2') return stim2 + suffix;
                 return val;
             };
-            row.stim1 = mapImage(row.stim1, '_stim.png');
-            row.stim2 = mapImage(row.stim2, '_stim.png');
-            row.Image_Left = mapImage(row.Image_Left, '_stim.png');
-            row.Image_Right = mapImage(row.Image_Right, '_stim.png');
-            row.Image_Left_Bold = mapImage(row.Image_Left_Bold, '_stim_bold.png');
-            row.Image_Right_Bold = mapImage(row.Image_Right_Bold, '_stim_bold.png');
+            row.stim1 = mapImage(row.stim1, '_stim.svg');
+            row.stim2 = mapImage(row.stim2, '_stim.svg');
+            row.Image_Left = mapImage(row.Image_Left, '_stim.svg');
+            row.Image_Right = mapImage(row.Image_Right, '_stim.svg');
+            row.Image_Left_Bold = mapImage(row.Image_Left_Bold, '_stim_bold.svg');
+            row.Image_Right_Bold = mapImage(row.Image_Right_Bold, '_stim_bold.svg');
         }
     }
     return spreadsheet;
