@@ -22,7 +22,7 @@ Task has both standalone and integrated formats:
 *   `spreadsheet_data.json` & `spreadsheet.csv`: Configuration files defining trial-by-trial probabilities, reward, and blocks.
 *   `/images/`: Visual stimuli and general task-related imagery
 
-### Operational Procedures
+### Task loading and data export
 The run file, `index.html`, has been tested on chrome and safari. After entering participant ID and confirming the keybind for triggering scanner, the task got to a full screen mode. 
 
 After the experiment is completed, behavioral data is automatically exported in a CSV format. Raw data can also theoretically be retrieved manually via the interface if the experiment crashes, etc 
