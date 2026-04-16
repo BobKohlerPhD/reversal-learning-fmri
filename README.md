@@ -2,7 +2,7 @@
 
 
 ## Experimental Paradigm
-The PRL task requires participants to identify high probability reward stimuli through trial-and-error. The current implementation utilizes geometric SVGs as stimuli with clear coloring and definition.
+The PRL task requires participants to identify high probability reward stimuli through trial-and-error.
 
 ### Design
  Four distinct blocks, each comprising 18 trials (n = 72 trials). For each block, a unique pair of geometric shapes is presented.
